@@ -9,3 +9,4 @@ gradio==3.50.2
 sseclient-py==1.8.0
 requests==2.31.0
 python-multipart==0.0.7
+aiohttp==3.8.4
