@@ -11,31 +11,39 @@ A multi-model chatbot that integrates OpenAI, Claude, and Gemini AI models with 
 
 ## Setup
 
-1. Install the required dependencies:
+1. **Install Dependencies**:
+   Ensure you have Python installed. Then, install the required dependencies using:
    ```
    pip install -r requirements.txt
    ```
 
-2. Configure your API keys in the `.env` file:
+2. **Configure API Keys**:
+   Create a `.env` file in the root directory and add your API keys:
    ```
    OPENAI_API_KEY=your_openai_api_key
    GEMINI_API_KEY=your_gemini_api_key
-   ANTHROPIC_API_KEY=your_claude_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
    ```
 
-## Running the Application
-
-1. Start the FastAPI backend:
+3. **Start the Backend**:
+   Run the FastAPI server:
    ```
    uvicorn main:app --reload --port 8000
    ```
 
-2. In a separate terminal, start the Gradio frontend:
+4. **Start the Frontend**:
+   In a separate terminal, start the Gradio UI:
    ```
    python frontend.py
    ```
 
-3. Access the chatbot interface at: http://127.0.0.1:7860
+5. **Access the Chatbot**:
+   Open your browser and go to: http://127.0.0.1:7860
+
+## Usage
+
+- **Switch Models**: Use the `/set_model` endpoint to switch between OpenAI, Claude, and Gemini models.
+- **Enable Streaming**: Use the `stream` parameter in the `/chat` endpoint to enable streaming responses.
 
 ## Architecture
 
