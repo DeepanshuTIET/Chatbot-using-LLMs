@@ -5,19 +5,15 @@ import os
 import json
 import time
 from dotenv import load_dotenv
-import sseclient  # You'll need to install this: pip install sseclient-py
+import sseclient
 
-# Load environment variables
 load_dotenv()
 
-# API endpoint (assuming FastAPI server runs on this port)
 API_URL = "http://localhost:8000"
 
-# Generate a unique session ID for this chat instance
 session_id = str(uuid.uuid4())
 
 def switch_model(model_name):
-    """Switch the active LLM model"""
     response = requests.post(
         f"{API_URL}/set_model",
         json={"model": model_name}
@@ -25,11 +21,9 @@ def switch_model(model_name):
     return f"Model switched to {model_name}"
 
 def chat_stream(message, history):
-    """Send message to backend and get streaming response"""
     if message.strip() == "":
         return "Please enter a message."
     
-    # Send message to backend with streaming enabled
     response = requests.post(
         f"{API_URL}/chat",
         json={"session_id": session_id, "message": message, "stream": True},
@@ -51,7 +45,7 @@ def chat_stream(message, history):
                     chunk = data["chunk"]
                     full_response += chunk
                     yield full_response
-                    time.sleep(0.01)  # Small delay for smoother UI updates
+                    time.sleep(0.01)
             except json.JSONDecodeError:
                 pass
         
@@ -60,11 +54,9 @@ def chat_stream(message, history):
         return f"Error: {response.text}"
 
 def chat_regular(message, history):
-    """Send message to backend and get regular (non-streaming) response"""
     if message.strip() == "":
         return "Please enter a message."
     
-    # Send message to backend
     response = requests.post(
         f"{API_URL}/chat",
         json={"session_id": session_id, "message": message, "stream": False}
@@ -75,7 +67,6 @@ def chat_regular(message, history):
     else:
         return f"Error: {response.text}"
 
-# Create Gradio interface
 with gr.Blocks(title="Multi-LLM Chat Platform") as demo:
     gr.Markdown("# Multi-LLM Chat Platform")
     gr.Markdown("Chat with different LLM models - OpenAI, Claude, or Gemini")
@@ -113,7 +104,6 @@ with gr.Blocks(title="Multi-LLM Chat Platform") as demo:
             - Gemini: Gemini 1.5 Pro
             """)
     
-    # Set up event handlers
     model_radio.change(switch_model, inputs=model_radio, outputs=gr.Textbox(visible=False))
     
     def user(user_message, history):
@@ -146,6 +136,5 @@ with gr.Blocks(title="Multi-LLM Chat Platform") as demo:
     
     clear.click(lambda: None, None, chatbot, queue=False)
 
-# Launch the app
 if __name__ == "__main__":
     demo.launch()

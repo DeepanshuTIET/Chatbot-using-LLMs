@@ -2,18 +2,14 @@ import gradio as gr
 import requests
 import uuid
 
-# Generate a unique session ID for this chat instance
 session_id = str(uuid.uuid4())
 
-# API endpoint (assuming FastAPI server runs on this port)
 API_URL = "http://localhost:8000"
 
 def chat(message, history):
-    """Send message to backend and get regular (non-streaming) response"""
     if message.strip() == "":
         return history, ""
     
-    # Send message to backend
     response = requests.post(
         f"{API_URL}/chat",
         json={"session_id": session_id, "message": message, "stream": False}
@@ -28,9 +24,7 @@ def chat(message, history):
         return history, ""
 
 def switch_model(model_name):
-    """Switch the active LLM model"""
     global session_id
-    # Reset session when changing models
     session_id = str(uuid.uuid4())
     
     response = requests.post(
@@ -39,7 +33,6 @@ def switch_model(model_name):
     )
     return f"Model switched to {model_name} (new session created)"
 
-# Create Gradio interface
 with gr.Blocks(title="Multi-LLM Chat Platform - Basic UI") as demo:
     gr.Markdown("# Multi-LLM Chat Platform")
     gr.Markdown("Chat with different LLM models - OpenAI, Claude, or Gemini")
@@ -70,7 +63,6 @@ with gr.Blocks(title="Multi-LLM Chat Platform - Basic UI") as demo:
             - **Gemini**: Gemini 1.5 Pro
             """)
     
-    # Set up event handlers
     msg.submit(chat, [msg, chatbot], [chatbot, msg])
     submit.click(chat, [msg, chatbot], [chatbot, msg])
     clear.click(lambda: [], None, chatbot)

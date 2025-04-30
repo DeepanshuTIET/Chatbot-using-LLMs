@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-# Use the correct import for the installed version
 import openai
 import os
 import requests
@@ -10,12 +9,10 @@ import aiohttp
 from dotenv import load_dotenv
 import google.generativeai as genai
 
-# Load environment variables from .env file
 load_dotenv()
 
 app = FastAPI()
 
-# Allow frontend to access backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,20 +21,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# LLM Config
-# Get API keys from environment variables
 openai_api_key = os.getenv("OPENAI_API_KEY")
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
 
-# Set OpenAI API key
 openai.api_key = openai_api_key
 
-# For debugging
 print(f"OpenAI API Key: {openai_api_key[:5]}... (length: {len(openai_api_key) if openai_api_key else 0})")
 print(f"Anthropic API Key: {anthropic_api_key[:5]}... (length: {len(anthropic_api_key) if anthropic_api_key else 0})")
 
-# In-memory session and model state
 session_store = {}
 active_model = {"name": "openai"}
 
@@ -55,12 +47,10 @@ def set_model(req: ModelRequest):
     print(f"Model changed from {previous_model} to {req.model}")
     return {"message": f"Model set to {req.model}"}
 
-# Add these imports
 import sqlite3
 from contextlib import contextmanager
 import json
 
-# Database setup
 def init_db():
     with get_db_connection() as conn:
         conn.execute('''
@@ -80,10 +70,7 @@ def get_db_connection():
     finally:
         conn.close()
 
-# Call this at startup
 init_db()
-
-# Then modify your chat endpoint to use the database
 class StreamingChatRequest(ChatRequest):
     stream: bool = False
 
@@ -93,12 +80,10 @@ def chat(req: StreamingChatRequest):
     message = req.message
     stream = req.stream
     
-    # Debug information
     print(f"Processing chat request for session {session_id}")
     print(f"Current active model: {active_model['name']}")
     print(f"Streaming mode: {stream}")
 
-    # Get session history from database
     history = []
     with get_db_connection() as conn:
         result = conn.execute("SELECT history FROM sessions WHERE session_id = ?", (session_id,))
@@ -106,15 +91,12 @@ def chat(req: StreamingChatRequest):
         if row:
             history = json.loads(row['history'])
         
-    # Add new message
     history.append({"role": "user", "content": message})
 
     model = active_model["name"]
     print(f"Using model: {model}")
 
-    # Handle streaming vs regular responses
     if stream:
-        # For streaming responses, return a streaming response
         from fastapi.responses import StreamingResponse
         
         if model == "openai":
@@ -126,7 +108,6 @@ def chat(req: StreamingChatRequest):
         else:
             return {"response": "Unknown model"}
     else:
-        # For regular responses
         if model == "openai":
             response = call_openai(history)
         elif model == "claude":
@@ -136,10 +117,8 @@ def chat(req: StreamingChatRequest):
         else:
             response = "Unknown model"
 
-        # Add response to history
         history.append({"role": "assistant", "content": response})
         
-        # Save updated history to database
         with get_db_connection() as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO sessions (session_id, history) VALUES (?, ?)",
@@ -149,11 +128,9 @@ def chat(req: StreamingChatRequest):
             
         return {"response": response}
 
-# === LLM Integration Functions ===
 def call_openai(messages):
     try:
         print("Attempting to call OpenAI API")
-        # Using the older version of the OpenAI API
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=messages,
@@ -165,30 +142,25 @@ def call_openai(messages):
         error_message = f"OpenAI API error: {str(e)}"
         print(error_message)
         
-        # Return informative error message
         return f"Error connecting to OpenAI API: {str(e)}. Please check your API key and quota."
 
 def call_claude(messages):
     try:
-        # For debugging
         print(f"Call Claude function called with {len(messages)} messages")
         
-        # Format messages for Claude API
         claude_messages = []
         for msg in messages:
             claude_messages.append({"role": msg["role"], "content": msg["content"]})
         
-        # Call Claude API directly using requests
         print("Using Anthropic API to generate response")
         headers = {
             "x-api-key": anthropic_api_key,
             "content-type": "application/json",
-            "anthropic-version": "2023-06-01"  # Standard API version
+            "anthropic-version": "2023-06-01"
         }
         
-        # Use claude-2.0 model which is widely available
         data = {
-            "model": "claude-3-opus-20240229",  # Standard model name format
+            "model": "claude-3-opus-20240229",
             "messages": claude_messages,
             "max_tokens": 1000
         }
@@ -215,10 +187,8 @@ def call_claude(messages):
 def call_gemini(prompt):
     try:
         print("Attempting to call Gemini API")
-        # Make sure we're using the correct Gemini model
         model = genai.GenerativeModel("gemini-1.5-pro")
         
-        # Handle prompt as structured content
         generation_config = {
             'temperature': 0.7,
             'top_p': 0.9,
@@ -238,13 +208,6 @@ def call_gemini(prompt):
         print(error_message)
         return f"Error connecting to Gemini API: {str(e)}. Please check your API key."
 
-# This function is no longer used since we want to use the actual LLM APIs
-# Keeping it for reference but it's not called anywhere
-def generate_local_response(query):
-    print("Using local fallback response generator")
-    return "The AI service is currently experiencing technical difficulties. Please check your API keys and try again later."
-
-# === Streaming Functions ===
 async def stream_openai(messages):
     try:
         print("Streaming response from OpenAI")
@@ -275,12 +238,10 @@ async def stream_claude(messages):
     try:
         print("Streaming response from Claude")
         
-        # Format messages for Claude API
         claude_messages = []
         for msg in messages:
             claude_messages.append({"role": msg["role"], "content": msg["content"]})
         
-        # Call Claude API with streaming
         headers = {
             "x-api-key": anthropic_api_key,
             "content-type": "application/json",
@@ -358,7 +319,6 @@ async def stream_gemini(prompt):
         yield f"data: {json.dumps({'chunk': f'Error: {str(e)}'})}\n\n"
         yield f"data: [DONE]\n\n"
 
-# For debugging
 @app.get("/")
 def root():
     return {"message": "AI Chatbot API is running!"}

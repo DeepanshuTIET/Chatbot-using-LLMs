@@ -18,15 +18,12 @@ with gr.Blocks() as demo:
         return res.json()["response"]
 
     def set_model(model):
-        # Reset session when changing models
         global session_id
         session_id = str(uuid.uuid4())
         print(f"Setting model to {model} with new session {session_id}")
         
-        # Send model change request to backend
         response = requests.post(f"{BACKEND}/set_model", json={"model": model})
         
-        # Return success message
         return f"Model set to {model} (new session created)"
 
     def respond(message, history):
